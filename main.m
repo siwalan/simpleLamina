@@ -3,14 +3,15 @@ clear; clc
 error_rate = 0.01;
 %% Assuming Symetric in One Axis
 material_stress_yield = 350;
-material_strain_yield = 0.0018;
 material_elasticity_modulus = 200000; %N/mm^2
+
+material_strain_yield = material_stress_yield/material_elasticity_modulus;
 % Section Data
 section_width = [200; 11; 200];
 section_width_coordinates = [0 17; 17 583; 583 600];
 
 % n-pieces division
-N = 200;
+N = 600;
 
 % Load Data
 Axial_Load = 0;
@@ -33,12 +34,21 @@ N_stressstrain = zeros(N, 2);
 curvature_array = [0:1:1]*1000;
 NA_height = section_height / 2;
 %% NA_height generator
-NA_heights = 1:section_height; %% A more exotic algorithm is required if the NA is not integer.
-
+% NA_heights = [NA_height];
+% for iterator=1:1:section_height/2
+%     NA_heights = [NA_heights; NA_heights(1) + 1*iterator; NA_heights(1) - 1*iterator];
+% end
+NA_heights = 1:section_height;
+% NA_heights = [153];
+% accuracy = 100000;
+% for iterator=1:1:1*accuracy
+%     NA_heights = [NA_heights; NA_heights(1) + 1*iterator/accuracy];
+% end
+% NA_heights = linspace(153, 153.0020,100)
 NA_height_iterator = 1;
 analysis_correct = false;
 iteration_data = [];
-curvature_array = [0:0.0000001:0.00005];
+curvature_array = [0:0.0000001:0.0002];
 curvature_na_data = [];
 %% Calculate Moment at TOTAL yield Condition
 plastic_moment = 0;
@@ -48,6 +58,17 @@ yield_curvature = 0;
 while true
     if NA_height_iterator <= length(NA_heights)
         NA_height = NA_heights(NA_height_iterator);
+%     else
+%         str = "Fail!"
+%         closest_to_zero = knnsearch(iteration_data(:,3),0)
+%         if (iteration_data(closest_to_zero,4) < 0)
+%             NA_heights = linspace(iteration_data(closest_to_zero-1,1),iteration_data(closest_to_zero,1),10);
+%         else
+%             NA_heights = linspace(iteration_data(closest_to_zero,1),iteration_data(closest_to_zero+1,1),10);
+%         end
+%         NA_height_iterator = 1;
+%         str = sprintf('New NA Height Search, Start from %.5f to %.5f', iteration_data(closest_to_zero,1), iteration_data(closest_to_zero+1,1))
+%         NA_height = NA_heights(NA_height_iterator);
     end
     for curvature_iteration=1:length(curvature_array)   
         analysis_correct = false;
@@ -62,7 +83,7 @@ while true
         if (abs(section_load - Axial_Load) < error_rate)
                 analysis_correct = true;
                 if (((abs(N_stressstrain(1,2)) >= material_strain_yield) |  (abs(N_stressstrain(end,2)) >= material_strain_yield)) & yield_moment ==0)
-                      yield_moment = section_moment;
+                     yield_moment = section_moment;
                      yield_curvature = curvature;
                 
                 end
@@ -87,3 +108,5 @@ plot(curvature_na_data(:,6),curvature_na_data(:,7))
 xlim([0 4])
 ylim([0 1.2])
 grid on
+yield_moment_kNm = yield_moment/(1000*1000)
+plastic_moment_kNm =  curvature_na_data(end,4)/(1000*1000)
